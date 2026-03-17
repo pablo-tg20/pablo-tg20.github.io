@@ -5,769 +5,278 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Simulación de Vaciado de Tanque</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2.5rem 1rem 3rem;}
+  .header{text-align:center;margin-bottom:2.2rem;}
+  .eyebrow{font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#58a6ff;margin-bottom:.55rem;}
+  h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:300;letter-spacing:-.02em;color:#e6edf3;line-height:1.15;}
+  h1 span{font-weight:600;background:linear-gradient(90deg,#58a6ff,#79c0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .sub{margin-top:.7rem;font-size:13px;color:#7d8590;}
+  .divider{width:48px;height:2px;background:linear-gradient(90deg,#58a6ff,#79c0ff);border-radius:2px;margin:1.1rem auto 0;}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:16px;padding:1.5rem;width:100%;max-width:760px;box-shadow:0 8px 40px rgba(0,0,0,.45);}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ── Stat cards ── */
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
+  .stat{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:.75rem 1rem;position:relative;overflow:hidden;}
+  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:10px 10px 0 0;}
 
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #1f2335;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --blue: #4f9eff;
-    --blue-dim: rgba(79,158,255,0.15);
-    --cyan: #56cfb2;
-    --cyan-dim: rgba(86,207,178,0.12);
-    --text: #e2e8f0;
-    --muted: #64748b;
-    --muted2: #94a3b8;
-    --wave: rgba(79,158,255,0.08);
-  }
+  /* Color accent per card */
+  .stat-h::before  {background:linear-gradient(90deg,#58a6ff,#79c0ff);}
+  .stat-t::before  {background:linear-gradient(90deg,#3fb950,#56d364);}
+  .stat-p::before  {background:linear-gradient(90deg,#f78166,#ff9580);}
+  .stat-tt::before {background:linear-gradient(90deg,#d2a8ff,#bf8fff);}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+  .stat-h  .sval{color:#79c0ff;}
+  .stat-t  .sval{color:#56d364;}
+  .stat-p  .sval{color:#ff9580;}
+  .stat-tt .sval{color:#d2a8ff;}
 
-  /* Animated background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-    z-index: 0;
-  }
+  .slabel{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#7d8590;margin-bottom:5px;}
+  .sval{font-size:20px;font-weight:500;}
 
-  .container {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 960px;
-    padding: 2.5rem 1.5rem 4rem;
-  }
-
-  /* Header */
-  .header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-  .header-tag {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
-    color: var(--cyan);
-    background: var(--cyan-dim);
-    border: 1px solid rgba(86,207,178,0.2);
-    border-radius: 100px;
-    padding: 0.3rem 0.9rem;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-  }
-  .header h1 {
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
-    font-weight: 600;
-    letter-spacing: -0.03em;
-    color: #fff;
-    margin-bottom: 0.6rem;
-    line-height: 1.15;
-  }
-  .header-sub {
-    font-size: 0.85rem;
-    color: var(--muted2);
-    letter-spacing: 0.04em;
-  }
-  .header-sub span {
-    color: var(--blue);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-  }
-
-  /* Stat cards row */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  @media (max-width: 600px) { .stats { grid-template-columns: 1fr 1fr; } }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 14px;
-    padding: 1.1rem 1.2rem;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--blue), var(--cyan));
-    opacity: 0.5;
-    border-radius: 14px 14px 0 0;
-  }
-  .stat-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-  .stat-val {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.45rem;
-    font-weight: 500;
-    color: #fff;
-    line-height: 1;
-  }
-  .stat-val.accent { color: var(--cyan); }
-  .stat-val.blue { color: var(--blue); }
-  .stat-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--muted);
-    margin-top: 0.3rem;
-  }
-
-  /* Main layout */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 280px;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  @media (max-width: 700px) { .main-grid { grid-template-columns: 1fr; } }
-
-  /* Chart card */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 1.4rem;
-  }
-  .card-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .card-title::before {
-    content: '';
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--cyan);
-  }
-  .chart-wrap {
-    position: relative;
-    width: 100%;
-    height: 240px;
-  }
-
-  /* Tank visual card */
-  .tank-card {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 1.4rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.2rem;
-  }
-
-  .tank-scene {
-    position: relative;
-    width: 140px;
-    height: 280px;
-    margin: 0 auto;
-  }
-
-  /* Tank glass effect */
-  .tank-outer {
-    position: absolute;
-    inset: 0 10px 20px 10px;
-    border: 1.5px solid rgba(255,255,255,0.15);
-    border-radius: 8px 8px 4px 4px;
-    overflow: hidden;
-    background: rgba(0,0,0,0.4);
-  }
-  .tank-water {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(180deg, rgba(79,158,255,0.6) 0%, rgba(56,130,220,0.85) 100%);
-    transition: height 0.06s linear;
-    border-radius: 0 0 2px 2px;
-  }
-  /* Water surface shimmer */
-  .tank-water::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: rgba(150,210,255,0.7);
-    border-radius: 2px;
-    animation: shimmer 2s ease-in-out infinite;
-  }
-  @keyframes shimmer {
-    0%,100% { opacity: 0.7; }
-    50% { opacity: 0.3; }
-  }
-  .tank-pct-label {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: rgba(255,255,255,0.9);
-    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
-    pointer-events: none;
-    z-index: 2;
-  }
-  /* Tick marks */
-  .tick {
-    position: absolute;
-    right: -16px;
-    width: 8px;
-    height: 1px;
-    background: var(--muted);
-  }
-  .tick-label {
-    position: absolute;
-    right: -38px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.55rem;
-    color: var(--muted);
-    transform: translateY(-50%);
-  }
-  /* Pipe/orifice */
-  .pipe {
-    position: absolute;
-    bottom: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 14px; height: 22px;
-    background: var(--surface2);
-    border: 1.5px solid rgba(255,255,255,0.1);
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-  }
-  /* Water jet */
-  .jet-wrap {
-    position: absolute;
-    bottom: -50px; left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    overflow: hidden;
-  }
-  .jet-stream {
-    width: 100%;
-    height: 0;
-    background: linear-gradient(180deg, rgba(79,158,255,0.8), rgba(79,158,255,0));
-    border-radius: 0 0 4px 4px;
-    transition: height 0.1s;
-  }
-
-  /* h label */
-  .h-arrow {
-    position: absolute;
-    left: -32px;
-    top: 0; bottom: 20px;
-    display: flex;
-    align-items: center;
-  }
-  .h-line {
-    position: absolute;
-    left: 8px; top: 0; bottom: 0;
-    width: 1px;
-    background: var(--blue);
-    opacity: 0.5;
-  }
-  .h-text {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6rem;
-    color: var(--blue);
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    white-space: nowrap;
-  }
-
-  /* Formula display in tank card */
-  .formula-strip {
-    width: 100%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.7rem 0.9rem;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--muted2);
-    line-height: 1.9;
-  }
-  .formula-strip .eq { color: var(--cyan); }
-
-  /* Controls card */
-  .controls-card {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 1.4rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1.2rem;
-    align-items: end;
-  }
-  @media (max-width: 600px) { .controls-card { grid-template-columns: 1fr; } }
-
-  .ctrl { }
-  .ctrl-head { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-  .ctrl-name { font-size: 0.7rem; color: var(--muted2); }
-  .ctrl-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--cyan);
-    font-weight: 500;
-  }
-  input[type=range] {
-    -webkit-appearance: none;
-    width: 100%; height: 4px;
-    border-radius: 2px;
-    background: var(--surface2);
-    outline: none;
-    cursor: pointer;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: var(--blue);
-    border: 2px solid rgba(255,255,255,0.2);
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-  /* Buttons */
-  .btn-group {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 1.2rem 1.4rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-  }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.6rem 1.4rem;
-    border-radius: 9px;
-    border: 1px solid var(--border2);
-    background: transparent;
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-  }
-  .btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
-  .btn.start { background: var(--blue-dim); border-color: rgba(79,158,255,0.4); color: var(--blue); }
-  .btn.start:hover { background: rgba(79,158,255,0.25); }
-  .btn.pause { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: #f59e0b; }
-  .btn.reset { }
-  .speed-wrap { display: flex; align-items: center; gap: 0.6rem; margin-left: auto; }
-  .speed-label { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-  .speed-select {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 7px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.6rem;
-    cursor: pointer;
-    outline: none;
-  }
-
-  /* Progress bar */
-  .progress-track {
-    width: 100%;
-    height: 5px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
-    flex: 1;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--blue), var(--cyan));
-    border-radius: 3px;
-    width: 0%;
-    transition: width 0.06s linear;
-  }
-  .time-mono {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    color: var(--muted2);
-    white-space: nowrap;
-  }
-
-  /* Footer */
-  footer {
-    text-align: center;
-    font-size: 0.7rem;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    margin-top: 1rem;
-  }
-  footer span { color: var(--blue); font-family: 'JetBrains Mono', monospace; }
+  #tc{display:block;width:100%;border-radius:10px;}
+  .controls{display:flex;align-items:center;gap:10px;margin-top:1rem;flex-wrap:wrap;}
+  button{padding:6px 20px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;border:1px solid #30363d;background:#21262d;color:#e6edf3;transition:background .15s,border-color .15s;}
+  button:hover:not(:disabled){background:#30363d;border-color:#58a6ff;}
+  button:disabled{opacity:.4;cursor:default;}
+  .clabel{font-size:13px;color:#7d8590;margin-left:6px;}
+  input[type=range]{width:110px;accent-color:#58a6ff;}
+  .spval{font-size:13px;font-weight:500;color:#58a6ff;min-width:32px;}
+  footer{margin-top:1.8rem;font-size:11px;color:#484f58;text-align:center;}
 </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-tag">Ecuaciones Diferenciales · Ley de Torricelli</div>
-    <h1>Simulación de Vaciado de Tanque</h1>
-    <div class="header-sub">
-      h₀ = <span>2.9 m</span> &nbsp;·&nbsp; R = <span>46 cm</span> &nbsp;·&nbsp; r = <span>3.7 cm</span> &nbsp;·&nbsp; t = <span id="hdrT">119.02 s</span>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-label">Altura actual</div>
-      <div class="stat-val accent" id="sH">2.900 m</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Tiempo</div>
-      <div class="stat-val blue" id="sT">0.00 s</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Vaciado</div>
-      <div class="stat-val" id="sPct">0%</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Tiempo total</div>
-      <div class="stat-val" id="sTv">119.02 s</div>
-      <div class="stat-sub" id="sTvMin">1 min 59.02 s</div>
-    </div>
-  </div>
-
-  <!-- Button row -->
-  <div class="btn-group">
-    <button class="btn start" id="btnStart">▶ Iniciar</button>
-    <button class="btn pause" id="btnPause" disabled>⏸ Pausar</button>
-    <button class="btn reset" id="btnReset">↺ Reiniciar</button>
-    <div style="display:flex;align-items:center;gap:0.5rem;flex:1;">
-      <div class="progress-track"><div class="progress-fill" id="pgBar"></div></div>
-      <span class="time-mono" id="pgTime">0.00 s</span>
-    </div>
-    <div class="speed-wrap">
-      <span class="speed-label">Velocidad:</span>
-      <select class="speed-select" id="speedSel">
-        <option value="1">1×</option>
-        <option value="5">5×</option>
-        <option value="10" selected>10×</option>
-        <option value="25">25×</option>
-        <option value="50">50×</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Main grid -->
-  <div class="main-grid">
-    <!-- Chart -->
-    <div class="card">
-      <div class="card-title">Altura h(t) — curva de vaciado</div>
-      <div class="chart-wrap"><canvas id="myChart"></canvas></div>
-    </div>
-
-    <!-- Tank -->
-    <div class="tank-card">
-      <div class="card-title" style="align-self:flex-start">Nivel del tanque</div>
-
-      <div class="tank-scene">
-        <!-- h arrow -->
-        <div class="h-arrow" style="left:-28px;">
-          <div class="h-line"></div>
-          <span class="h-text" id="hArrowTxt">h = 2.90 m</span>
-        </div>
-
-        <!-- Tick marks -->
-        <div class="tick" style="bottom:calc(20px + 100%*0.75);"></div>
-        <span class="tick-label" style="bottom:calc(20px + 100%*0.75 - 4px);">75%</span>
-        <div class="tick" style="bottom:calc(20px + 100%*0.5);"></div>
-        <span class="tick-label" style="bottom:calc(20px + 100%*0.5 - 4px);">50%</span>
-        <div class="tick" style="bottom:calc(20px + 100%*0.25);"></div>
-        <span class="tick-label" style="bottom:calc(20px + 100%*0.25 - 4px);">25%</span>
-
-        <div class="tank-outer">
-          <div class="tank-water" id="tankWater" style="height:100%;">
-          </div>
-          <div class="tank-pct-label" id="tankPctLbl">100%</div>
-        </div>
-        <div class="pipe"></div>
-        <div class="jet-wrap">
-          <div class="jet-stream" id="jetStream" style="height:40px;"></div>
-        </div>
-      </div>
-
-      <div class="formula-strip">
-        <div><span class="eq">dh/dt</span> = −(r/R)²·√(2gh)</div>
-        <div><span class="eq">h(t)</span> = [√h₀ − k·t ]²</div>
-        <div><span class="eq">k</span> = (r/R)²·√(2g)/2</div>
-        <div><span class="eq">t_vac</span> = 2√h₀ / [(r/R)²·√(2g)]</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Controls -->
-  <div class="controls-card">
-    <div class="ctrl">
-      <div class="ctrl-head">
-        <span class="ctrl-name">Radio tanque R (cm)</span>
-        <span class="ctrl-num" id="lR">46.0 cm</span>
-      </div>
-      <input type="range" id="slR" min="10" max="120" step="0.5" value="46">
-    </div>
-    <div class="ctrl">
-      <div class="ctrl-head">
-        <span class="ctrl-name">Radio orificio r (cm)</span>
-        <span class="ctrl-num" id="lr">3.7 cm</span>
-      </div>
-      <input type="range" id="slr" min="0.5" max="15" step="0.1" value="3.7">
-    </div>
-    <div class="ctrl">
-      <div class="ctrl-head">
-        <span class="ctrl-name">Altura inicial h₀ (m)</span>
-        <span class="ctrl-num" id="lH">2.9 m</span>
-      </div>
-      <input type="range" id="slH" min="0.5" max="6" step="0.1" value="2.9">
-    </div>
-  </div>
-
-  <footer style="margin-top:2rem;">
-    Simulación basada en la Ley de Torricelli &nbsp;·&nbsp; <span>dh/dt = −(r²/R²)√(2gh)</span>
-  </footer>
-
+<div class="header">
+  <div class="eyebrow">Ecuaciones Diferenciales · Ley de Torricelli</div>
+  <h1>Simulación de <span>Vaciado de Tanque</span></h1>
+  <p class="sub">Torres Gomez Juan Pablo &nbsp;·&nbsp; h₀ = 2.3 m &nbsp;·&nbsp; R = 59 cm &nbsp;·&nbsp; r = 3.3 cm &nbsp;·&nbsp; t = 218.88 s</p>
+  <div class="divider"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<div class="card">
+  <div class="stats">
+    <div class="stat stat-h"><div class="slabel">Altura actual</div><div class="sval" id="sh">2.300 m</div></div>
+    <div class="stat stat-t"><div class="slabel">Tiempo</div><div class="sval" id="st">0.00 s</div></div>
+    <div class="stat stat-p"><div class="slabel">Vaciado</div><div class="sval" id="sp">0%</div></div>
+    <div class="stat stat-tt"><div class="slabel">Tiempo total</div><div class="sval">218.88 s</div><div style="font-size:11px;color:#7d8590;margin-top:3px;">3 min 38.88 s</div></div>
+  </div>
+  <canvas id="tc"></canvas>
+  <div class="controls">
+    <button id="bs" onclick="startSim()">▶ Iniciar</button>
+    <button id="bp" onclick="pauseSim()" disabled>⏸ Pausar</button>
+    <button onclick="resetSim()">↺ Reiniciar</button>
+    <span class="clabel">Velocidad:</span>
+    <input type="range" min="1" max="50" value="10" step="1" id="spd" oninput="document.getElementById('sl').textContent=this.value+'×'">
+    <span id="sl" class="spval">10×</span>
+  </div>
+</div>
+
+<footer>Simulación basada en la Ley de Torricelli &nbsp;·&nbsp; dh/dt = −(r²/R²)√(2gh)</footer>
+
 <script>
-const G = 9.81;
-let chart = null, sim = null, idx = 0, running = false, rafId = null, lastTs = null;
+const H0=2.3,Rp=0.59,rp=0.033,G=9.81,TT=218.88;
+const ratio=(rp*rp)/(Rp*Rp),sG=Math.sqrt(2*G);
+function h_at(t){const v=Math.sqrt(H0)-(sG*ratio/2)*t;return v<=0?0:v*v;}
 
-function getP() {
-  return {
-    R: parseFloat(document.getElementById('slR').value) / 100,
-    r: parseFloat(document.getElementById('slr').value) / 100,
-    h0: parseFloat(document.getElementById('slH').value),
-    speed: parseFloat(document.getElementById('speedSel').value)
-  };
-}
+// ── Canvas – sharp on retina ──
+const cv=document.getElementById('tc');
+const ctx=cv.getContext('2d');
+const DPR=window.devicePixelRatio||1;
+const CW=680,CH=420;
+cv.width=CW*DPR; cv.height=CH*DPR;
+cv.style.width=CW+'px'; cv.style.height=CH+'px';
+ctx.scale(DPR,DPR);
 
-function compute(h0, R, r) {
-  const ratio = (r / R) ** 2;
-  const k = ratio * Math.sqrt(2 * G) / 2;
-  const tv = Math.sqrt(h0) / k;
-  const STEPS = 600;
-  const dt = tv / STEPS;
-  const T = [], H = [], V = [];
-  for (let i = 0; i <= STEPS; i++) {
-    const t = i * dt;
-    const sq = Math.max(0, Math.sqrt(h0) - k * t);
-    T.push(+(t.toFixed(3)));
-    H.push(+(sq * sq).toFixed(5));
-    V.push(+(Math.sqrt(2 * G * sq * sq)).toFixed(4));
-  }
-  return { T, H, V, tv, k };
-}
+const TX=220,TY=55,TW=240,TH=275,TBOT=TY+TH;
+let sim=0,run=false,lts=null,praf=null,at=0;
 
-function toMinSec(s) {
-  const m = Math.floor(s / 60);
-  const sec = (s - m * 60).toFixed(2);
-  return m > 0 ? `${m} min ${sec} s` : `${sec} s`;
-}
+const bubs=[]; let lbub=0;
+const vtx=[]; for(let i=0;i<22;i++) vtx.push(mkV());
+function mkV(){return{r:6+Math.random()*55,a:Math.random()*Math.PI*2,av:(0.03+Math.random()*.05)*(Math.random()<.5?1:-1),vy:-.1-.2*Math.random(),op:.08+.18*Math.random(),sz:.8+2*Math.random(),life:0,ml:70+150*Math.random()};}
 
-function buildChart() {
-  if (chart) { chart.destroy(); chart = null; }
-  const ctx = document.getElementById('myChart').getContext('2d');
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        borderColor: '#4f9eff',
-        backgroundColor: 'rgba(79,158,255,0.07)',
-        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.35
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      plugins: { legend: { display: false }, tooltip: {
-        callbacks: { label: ctx => ` h = ${ctx.parsed.y.toFixed(3)} m` },
-        bodyFont: { family: 'JetBrains Mono' }, titleFont: { family: 'JetBrains Mono' }
-      }},
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 8, autoSkip: true },
-          title: { display: true, text: 'Tiempo (s)', color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } },
-          min: 0,
-          title: { display: true, text: 'h (m)', color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
-        }
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  const h=h_at(sim), frac=Math.max(0,h/H0), wH=frac*TH, baseY=TBOT-wH;
+
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,CW,CH);
+
+  if(wH<TH){ctx.save();rr(TX,TY,TW,TH,8);ctx.clip();ctx.fillStyle='#0d1117';ctx.fillRect(TX,TY,TW,TH);ctx.restore();}
+
+  if(wH>1){
+    ctx.save(); rr(TX,TY,TW,TH,8); ctx.clip();
+
+    ctx.beginPath();
+    ctx.rect(TX, baseY, TW, wH);
+    const wg=ctx.createLinearGradient(0,baseY,0,TBOT);
+    wg.addColorStop(0,'#68c8ec'); wg.addColorStop(0.28,'#1a90c8');
+    wg.addColorStop(0.72,'#0c6fa0'); wg.addColorStop(1,'#054f7a');
+    ctx.fillStyle=wg; ctx.fill();
+
+    for(let b=1;b<=3;b++){
+      const by=baseY+b*wH*0.24; if(by>=TBOT) continue;
+      ctx.beginPath();
+      for(let i=0;i<=TW;i+=3){
+        const x=TX+i, sy=by+Math.sin(i*.015+at*(1+b*.4))*1.4;
+        i===0?ctx.moveTo(x,sy):ctx.lineTo(x,sy);
+      }
+      ctx.strokeStyle=`rgba(${b===1?'80,192,242':b===2?'28,118,182':'8,78,132'},0.16)`;
+      ctx.lineWidth=1.8; ctx.stroke();
+    }
+
+    if(frac>0.05){
+      for(let i=0;i<vtx.length;i++){
+        const v=vtx[i];
+        v.a+=v.av*(0.9+frac*.7); v.r=Math.max(1,v.r+v.vy); v.life++;
+        if(v.r<1||v.life>v.ml){Object.assign(v,mkV());continue;}
+        const px=TX+TW/2+Math.cos(v.a)*v.r, py=TBOT-16+Math.sin(v.a)*v.r*.3;
+        if(py<baseY+2||py>TBOT-2||px<TX+2||px>TX+TW-2) continue;
+        const fd=1-v.life/v.ml;
+        ctx.beginPath(); ctx.arc(px,py,v.sz,0,Math.PI*2);
+        ctx.fillStyle=`rgba(170,228,255,${(v.op*fd).toFixed(2)})`; ctx.fill();
       }
     }
-  });
-}
 
-function updateUI(i) {
-  if (!sim) return;
-  const h = sim.H[i], t = sim.T[i], h0 = getP().h0;
-  const pct = Math.max(0, Math.min(1, h / h0));
-
-  document.getElementById('sH').textContent = h.toFixed(3) + ' m';
-  document.getElementById('sT').textContent = t.toFixed(2) + ' s';
-  document.getElementById('sPct').textContent = (pct * 100).toFixed(1) + '%';
-  document.getElementById('pgTime').textContent = t.toFixed(2) + ' s';
-  document.getElementById('pgBar').style.width = ((t / sim.tv) * 100).toFixed(2) + '%';
-
-  // tank
-  document.getElementById('tankWater').style.height = (pct * 100).toFixed(2) + '%';
-  document.getElementById('tankPctLbl').textContent = Math.round(pct * 100) + '%';
-  document.getElementById('hArrowTxt').textContent = 'h = ' + h.toFixed(2) + ' m';
-  document.getElementById('jetStream').style.height = Math.round(pct * 45) + 'px';
-
-  // chart
-  if (chart) {
-    chart.data.labels = sim.T.slice(0, i + 1);
-    chart.data.datasets[0].data = sim.H.slice(0, i + 1);
-    chart.update('none');
-  }
-}
-
-function startAnim() {
-  if (running) return;
-  if (!sim) {
-    buildSim();
-  }
-  running = true;
-  lastTs = null;
-  document.getElementById('btnStart').disabled = true;
-  document.getElementById('btnPause').disabled = false;
-
-  function tick(ts) {
-    if (!running) return;
-    if (lastTs === null) lastTs = ts;
-    const elapsed = (ts - lastTs) / 1000;
-    lastTs = ts;
-
-    const { speed } = getP();
-    const simElapsed = elapsed * speed;
-    const dt = sim.tv / sim.H.length;
-    const steps = Math.max(1, Math.round(simElapsed / dt));
-    idx = Math.min(idx + steps, sim.H.length - 1);
-    updateUI(idx);
-
-    if (idx >= sim.H.length - 1) {
-      running = false;
-      document.getElementById('btnStart').disabled = false;
-      document.getElementById('btnPause').disabled = true;
-      return;
+    for(let i=bubs.length-1;i>=0;i--){
+      const b=bubs[i];
+      b.y+=b.vy; b.x+=b.vx; b.life++; b.vx+=(Math.random()-.5)*.06;
+      if(b.y<baseY-3||b.life>360){bubs.splice(i,1);continue;}
+      const al=Math.min(1,(b.y-baseY+5)/5)*b.op;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(210,242,255,${al.toFixed(2)})`; ctx.lineWidth=.9; ctx.stroke();
+      ctx.beginPath(); ctx.arc(b.x-b.r*.3,b.y-b.r*.28,b.r*.28,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${(al*.5).toFixed(2)})`; ctx.fill();
     }
-    rafId = requestAnimationFrame(tick);
+
+    for(let k=0;k<5;k++){
+      const cx=TX+28+k*46+Math.sin(at*.7+k*1.3)*20, cw=7+Math.sin(at*.45+k)*8;
+      const cg=ctx.createLinearGradient(0,baseY,0,baseY+wH*.55);
+      cg.addColorStop(0,'rgba(190,238,255,0.17)'); cg.addColorStop(1,'rgba(190,238,255,0)');
+      ctx.beginPath(); ctx.moveTo(cx-cw/2,baseY); ctx.lineTo(cx+cw/2,baseY);
+      ctx.lineTo(cx+cw/2+7,baseY+wH*.55); ctx.lineTo(cx-cw/2-7,baseY+wH*.55);
+      ctx.closePath(); ctx.fillStyle=cg; ctx.fill();
+    }
+
+    const sx=TX+((at*28)%(TW+60))-30;
+    const sg=ctx.createLinearGradient(sx,0,sx+55,0);
+    sg.addColorStop(0,'rgba(255,255,255,0)'); sg.addColorStop(.5,'rgba(255,255,255,0.12)'); sg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=sg; ctx.fillRect(sx,baseY,55,wH);
+
+    const fg=ctx.createLinearGradient(0,baseY,0,baseY+18);
+    fg.addColorStop(0,'rgba(255,255,255,0.50)'); fg.addColorStop(1,'rgba(180,232,255,0)');
+    ctx.fillStyle=fg; ctx.fillRect(TX,baseY,TW,18);
+
+    ctx.beginPath(); ctx.moveTo(TX,baseY); ctx.lineTo(TX+TW,baseY);
+    ctx.strokeStyle='rgba(155,225,255,0.82)'; ctx.lineWidth=1.8; ctx.stroke();
+
+    if(frac>0.12){
+      ctx.globalAlpha=Math.min(.4,(frac-.12)/.15*.4);
+      ctx.font='500 22px Inter,sans-serif'; ctx.fillStyle='white';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('AGUA',TX+TW/2,(baseY+TBOT)/2);
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
   }
-  rafId = requestAnimationFrame(tick);
+
+  ctx.save(); rr(TX,TY,TW,TH,8); ctx.clip();
+  const ls=ctx.createLinearGradient(TX,0,TX+TW,0);
+  ls.addColorStop(0,'rgba(0,0,0,0.20)'); ls.addColorStop(0.08,'rgba(0,0,0,0)');
+  ls.addColorStop(0.92,'rgba(0,0,0,0)'); ls.addColorStop(1,'rgba(0,0,0,0.17)');
+  ctx.fillStyle=ls; ctx.fillRect(TX,TY,TW,TH); ctx.restore();
+
+  rr(TX,TY,TW,TH,8); ctx.strokeStyle='#30363d'; ctx.lineWidth=2.2; ctx.stroke();
+  const gl=ctx.createLinearGradient(TX+5,0,TX+18,0);
+  gl.addColorStop(0,'rgba(255,255,255,0.18)'); gl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.save(); rr(TX,TY,TW,TH,8); ctx.clip(); ctx.fillStyle=gl; ctx.fillRect(TX+5,TY+8,13,TH-16); ctx.restore();
+
+  rr(TX-6,TY-7,TW+12,14,5); ctx.fillStyle='#21262d'; ctx.fill(); ctx.strokeStyle='#30363d'; ctx.lineWidth=1.2; ctx.stroke();
+  rr(TX+6,TBOT,TW-12,10,3); ctx.fillStyle='#21262d'; ctx.fill(); ctx.strokeStyle='#30363d'; ctx.lineWidth=1; ctx.stroke();
+  [[TX+48,TBOT+10],[TX+TW-76,TBOT+10]].forEach(([lx,ly])=>{rr(lx,ly,28,16,3);ctx.fillStyle='#161b22';ctx.fill();ctx.strokeStyle='#30363d';ctx.lineWidth=1;ctx.stroke();});
+  ctx.beginPath(); ctx.ellipse(TX+TW/2,347,90,5,0,0,Math.PI*2); ctx.fillStyle='rgba(6,70,110,0.15)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(130,342); ctx.lineTo(550,342); ctx.strokeStyle='#30363d'; ctx.lineWidth=1.5; ctx.stroke();
+  rr(TX+TW/2-14,TBOT,28,12,3); ctx.fillStyle='#30363d'; ctx.fill(); ctx.strokeStyle='#484f58'; ctx.lineWidth=1; ctx.stroke();
+
+  const jo=Math.min(1,Math.sqrt(Math.max(0,h)/H0));
+  if(jo>0.02){
+    ctx.save(); ctx.globalAlpha=jo;
+    const jg=ctx.createLinearGradient(0,TBOT+10,0,TBOT+48);
+    jg.addColorStop(0,'rgba(80,188,228,0.96)'); jg.addColorStop(1,'rgba(80,188,228,0)');
+    ctx.beginPath(); ctx.moveTo(TX+TW/2-5,TBOT+10);
+    ctx.bezierCurveTo(TX+TW/2-6,TBOT+26,TX+TW/2-9,TBOT+38,TX+TW/2-10,TBOT+48);
+    ctx.bezierCurveTo(TX+TW/2-7,TBOT+48,TX+TW/2+1,TBOT+36,TX+TW/2+4,TBOT+24);
+    ctx.lineTo(TX+TW/2+4,TBOT+10); ctx.closePath(); ctx.fillStyle=jg; ctx.fill();
+    [0,.65].forEach(d=>{const rs=((at+d)%1.4)/1.4;ctx.beginPath();ctx.arc(TX+TW/2-2,TBOT+14,3+rs*14,0,Math.PI*2);ctx.strokeStyle=`rgba(80,188,228,${((1-rs)*.5).toFixed(2)})`;ctx.lineWidth=1;ctx.stroke();});
+    ctx.restore();
+  }
+
+  const tc='#7d8590', bc='#58a6ff', rc='#f85149';
+  ctx.font='12px Inter,sans-serif'; ctx.textBaseline='middle';
+  const hTop=TBOT-Math.max(0,frac*TH);
+  ctx.strokeStyle=bc; ctx.lineWidth=1; ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(196,hTop); ctx.lineTo(218,hTop); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(196,TBOT); ctx.lineTo(218,TBOT); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(205,hTop+2); ctx.lineTo(205,TBOT-2); ctx.strokeStyle=bc; ctx.lineWidth=1.2; ctx.stroke();
+  [[205,hTop+2,1],[205,TBOT-2,-1]].forEach(([ax,ay,d])=>{ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax-5,ay+d*8);ctx.moveTo(ax,ay);ctx.lineTo(ax+5,ay+d*8);ctx.strokeStyle=bc;ctx.lineWidth=1.2;ctx.stroke();});
+  ctx.save(); ctx.translate(192,(hTop+TBOT)/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=bc; ctx.textAlign='center'; ctx.fillText('h = '+h.toFixed(2)+' m',0,0); ctx.restore();
+
+  ctx.strokeStyle=tc; ctx.lineWidth=.8; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(TX,198); ctx.lineTo(TX+TW,198); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(TX,192); ctx.lineTo(TX,204); ctx.strokeStyle=tc; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(TX+TW,192); ctx.lineTo(TX+TW,204); ctx.stroke();
+  ctx.fillStyle=tc; ctx.textAlign='center'; ctx.fillText('2R = 118 cm  ·  R = 59 cm',TX+TW/2,213);
+
+  ctx.strokeStyle=rc; ctx.lineWidth=1; ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(TX+TW/2+14,TBOT+6); ctx.lineTo(490,356); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(490,356); ctx.lineTo(484,351); ctx.lineTo(484,361); ctx.closePath(); ctx.fillStyle=rc; ctx.fill();
+  rr(492,345,132,22,4); ctx.fillStyle='#161b22'; ctx.fill(); ctx.strokeStyle=rc; ctx.lineWidth=.8; ctx.stroke();
+  ctx.fillStyle=rc; ctx.textAlign='center'; ctx.fillText('r = 3.3 cm (orificio)',558,356);
+
+  ctx.strokeStyle=tc; ctx.lineWidth=.8; ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(TX+TW,55); ctx.lineTo(488,55); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=tc; ctx.textAlign='left'; ctx.fillText('h₀ = 2.3 m',492,55);
+  ctx.fillStyle='#484f58'; ctx.fillText('Ley de Torricelli:',492,118); ctx.fillText('dh/dt = −(r²/R²)√2gh',492,134);
+
+  rr(50,397,580,7,3.5); ctx.fillStyle='#21262d'; ctx.fill();
+  rr(50,397,580*(1-frac),7,3.5); ctx.fillStyle=bc; ctx.fill();
+  ctx.fillStyle='#484f58'; ctx.textAlign='left'; ctx.fillText('Progreso del vaciado',50,390);
+  ctx.textAlign='right'; ctx.fillText(Math.round((1-frac)*100)+'%',636,401);
+
+  document.getElementById('sh').textContent=h.toFixed(3)+' m';
+  document.getElementById('st').textContent=sim.toFixed(2)+' s';
+  document.getElementById('sp').textContent=Math.round((1-frac)*100)+'%';
 }
 
-function pauseAnim() {
-  running = false;
-  if (rafId) cancelAnimationFrame(rafId);
-  document.getElementById('btnStart').disabled = false;
-  document.getElementById('btnPause').disabled = true;
+function loop(ts){
+  if(praf===null) praf=ts;
+  const dt=Math.min((ts-praf)/1000,.05); praf=ts; at+=dt;
+  if(run){
+    const sp=parseInt(document.getElementById('spd').value);
+    if(lts===null) lts=ts;
+    const sdt=(ts-lts)/1000*sp; lts=ts;
+    sim=Math.min(sim+sdt,TT);
+    if(sim>=TT){run=false;document.getElementById('bs').disabled=false;document.getElementById('bp').disabled=true;}
+  } else lts=null;
+
+  const frac=Math.max(0,h_at(sim)/H0);
+  if(frac>0.04&&at-lbub>0.28+Math.random()*.5){
+    lbub=at;
+    if(bubs.length<30) bubs.push({x:TX+16+Math.random()*(TW-32),y:TBOT-6,r:1.4+Math.random()*3,vy:-(0.25+Math.random()*.55),vx:(Math.random()-.5)*.28,op:.28+Math.random()*.44,life:0});
+  }
+
+  draw();
+  requestAnimationFrame(loop);
 }
 
-function resetSim() {
-  running = false;
-  if (rafId) cancelAnimationFrame(rafId);
-  idx = 0;
-  sim = null;
-  buildSim();
-  updateUI(0);
-  document.getElementById('btnStart').disabled = false;
-  document.getElementById('btnPause').disabled = true;
-  if (chart) { chart.data.labels = []; chart.data.datasets[0].data = []; chart.update('none'); }
-}
+function startSim(){if(run)return;run=true;lts=null;document.getElementById('bs').disabled=true;document.getElementById('bp').disabled=false;}
+function pauseSim(){run=false;lts=null;document.getElementById('bs').disabled=false;document.getElementById('bp').disabled=true;document.getElementById('bs').textContent='▶ Continuar';}
+function resetSim(){run=false;lts=null;sim=0;bubs.length=0;document.getElementById('bs').disabled=false;document.getElementById('bp').disabled=true;document.getElementById('bs').textContent='▶ Iniciar';}
 
-function buildSim() {
-  const { R, r, h0 } = getP();
-  sim = compute(h0, R, r);
-  idx = 0;
-  const tvStr = sim.tv.toFixed(2) + ' s';
-  document.getElementById('sTv').textContent = tvStr;
-  document.getElementById('sTvMin').textContent = toMinSec(sim.tv);
-  document.getElementById('hdrT').textContent = tvStr;
-  document.getElementById('sH').textContent = h0.toFixed(3) + ' m';
-  document.getElementById('sT').textContent = '0.00 s';
-  document.getElementById('sPct').textContent = '0%';
-  document.getElementById('pgTime').textContent = '0.00 s';
-  document.getElementById('pgBar').style.width = '0%';
-  document.getElementById('tankWater').style.height = '100%';
-  document.getElementById('tankPctLbl').textContent = '100%';
-  document.getElementById('hArrowTxt').textContent = 'h = ' + h0.toFixed(2) + ' m';
-  document.getElementById('jetStream').style.height = '45px';
-  if (!chart) buildChart();
-}
-
-function updateLabels() {
-  const R = parseFloat(document.getElementById('slR').value);
-  const r = parseFloat(document.getElementById('slr').value);
-  const h0 = parseFloat(document.getElementById('slH').value);
-  document.getElementById('lR').textContent = R.toFixed(1) + ' cm';
-  document.getElementById('lr').textContent = r.toFixed(1) + ' cm';
-  document.getElementById('lH').textContent = h0.toFixed(1) + ' m';
-  resetSim();
-}
-
-document.getElementById('btnStart').addEventListener('click', startAnim);
-document.getElementById('btnPause').addEventListener('click', pauseAnim);
-document.getElementById('btnReset').addEventListener('click', resetSim);
-['slR', 'slr', 'slH'].forEach(id => document.getElementById(id).addEventListener('input', updateLabels));
-
-buildChart();
-buildSim();
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
